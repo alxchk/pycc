@@ -48,12 +48,14 @@ typedef struct ccctx_ref_t {
 } *p_ccctx_ref_t;
 
 p_ccctx_t _ccctx_load(
-    int pymaj, int pymin, const char *from,
+    int pymaj, int pymin,
+    const char *from, const wchar_t *pyhome,
     py_seterr_t seterr
 );
 
 p_ccctx_ref_t ccctx_load(
-    int pymaj, int pymin, const char *from,
+    int pymaj, int pymin,
+    const char *from, const wchar_t *pyhome,
     py_seterr_t seterr
 );
 

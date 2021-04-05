@@ -4,7 +4,7 @@
 #include "ccctx_internal_pyX.h"
 
 p_ccctx_t _ccctx_load(
-    int pymaj, int pymin, const char *from,
+    int pymaj, int pymin, const char *from, const wchar_t *pyhome,
     py_seterr_t seterr)
 {
     char buf[512];
@@ -24,7 +24,7 @@ p_ccctx_t _ccctx_load(
     switch (pymaj) {
         case 2:
         case 3:
-            return (p_ccctx_t)pyX_load(pymaj, from, seterr);
+            return (p_ccctx_t)pyX_load(pymaj, from, pyhome, seterr);
         default:
             seterr("Required python major version is not supported");
             return NULL;
@@ -34,7 +34,7 @@ p_ccctx_t _ccctx_load(
 static p_ccctx_ref_t ccctx_refs = NULL;
 
 p_ccctx_ref_t ccctx_load(
-    int pymaj, int pymin, const char *from,
+    int pymaj, int pymin, const char *from, const wchar_t *pyhome,
     py_seterr_t seterr)
 {
     p_ccctx_ref_t ref;
@@ -55,7 +55,7 @@ p_ccctx_ref_t ccctx_load(
         /* } */
     }
 
-    ctx = _ccctx_load(pymaj, pymin, from, seterr);
+    ctx = _ccctx_load(pymaj, pymin, from, pyhome, seterr);
     if (!ctx)
         return NULL;
 
@@ -93,7 +93,9 @@ void ccctx_unload(p_ccctx_ref_t ref) {
         return;
     }
 
-    /* printf("Release ref: %p (%d)\n", ref, ref->refcnt); */
+    /* printf( */
+    /*     "Release ref: %p (%d) py%d.%d\n", */
+    /*     ref, ref->refcnt, ref->pymaj, ref->pymin); */
 
     if (ccctx_refs == ref) {
         ccctx_refs = ccctx_refs->next;

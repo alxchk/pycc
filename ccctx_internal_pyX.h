@@ -12,10 +12,11 @@ typedef void (*pyX_Py_InitializeEx)(int);
 typedef int (*pyX_Py_IsInitialized)(void);
 typedef int (*pyX_PyGILState_Ensure)(void);
 typedef void (*pyX_PyGILState_Release)(int);
-typedef void (*pyX_Py_SetProgramName)(char *);
+typedef void (*pyX_Py_SetProgramName)(const char *);
+typedef void (*pyX_Py_SetPythonHome)(const void *);
 typedef void (*pyX_Py_Finalize)(void);
-typedef int (*pyX_PyRun_SimpleString)(char *);
-typedef PyXObject* (*pyX_PySys_GetObject)(char *);
+typedef int (*pyX_PyRun_SimpleString)(const char *);
+typedef PyXObject* (*pyX_PySys_GetObject)(const char *);
 typedef PyXObject* (*pyX_PyDict_GetItemString)(PyXObject *, const char *);
 typedef int (*pyX_PyDict_SetItemString)(PyXObject *, const char *, PyXObject* );
 
@@ -51,11 +52,12 @@ typedef void (*pyX_Py_IncRef)(PyXObject *);
 
 typedef struct ccctx_pyX_t {
     ccctx_vtable_t vtable;
-    
+    void *pyhome;
+
     HMODULE handle;
 
     int is_initialized;
-   
+
     char **Py_FileSystemDefaultEncoding;
     int *Py_IgnoreEnvironmentFlag;
     int *Py_NoSiteFlag;
@@ -68,6 +70,7 @@ typedef struct ccctx_pyX_t {
     pyX_PyGILState_Ensure PyGILState_Ensure;
     pyX_PyGILState_Release PyGILState_Release;
     pyX_Py_SetProgramName Py_SetProgramName;
+    pyX_Py_SetPythonHome Py_SetPythonHome;
     pyX_Py_Finalize Py_Finalize;
     pyX_PyEval_GetBuiltins PyEval_GetBuiltins;
     pyX_PyRun_SimpleString PyRun_SimpleString;
@@ -91,7 +94,10 @@ typedef struct ccctx_pyX_t {
     pyX_PyString_AsStringAndSize PyString_AsStringAndSize;
 } *p_ccctx_pyX_t;
 
-p_ccctx_pyX_t pyX_load(int pymaj, const char *sobject, py_seterr_t errfcn);
+p_ccctx_pyX_t pyX_load(
+    int pymaj, const char *sobject, const wchar_t *pyhome,
+    py_seterr_t errfcn
+);
 
 #ifndef PYX_FILE_SYSTEM_ENCODING
 #define PYX_FILE_SYSTEM_ENCODING "UTF-8"

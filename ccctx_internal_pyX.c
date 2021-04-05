@@ -1,4 +1,6 @@
+#include <wchar.h>
 #include <stddef.h>
+#include <malloc.h>
 
 #include "ccctx_internal_pyX.h"
 
@@ -20,6 +22,7 @@ static symrecord_t symtable_py2[] = {
     REF(PyGILState_Release),
     REF(PyEval_GetBuiltins),
     REF(Py_SetProgramName),
+    REF(Py_SetPythonHome),
     REF(Py_Finalize),
     REF(PyRun_SimpleString),
     REF(PySys_GetObject),
@@ -56,6 +59,7 @@ static symrecord_t symtable_py3[] = {
     REF(PyGILState_Release),
     REF(PyEval_GetBuiltins),
     REF(Py_SetProgramName),
+    REF(Py_SetPythonHome),
     REF(Py_Finalize),
     REF(PyRun_SimpleString),
     REF(PySys_GetObject),
@@ -166,12 +170,22 @@ void pyX_unload(p_ccctx_t ccctx)
 {
     p_ccctx_pyX_t ctx = (p_ccctx_pyX_t) ccctx;
 
-    ctx->Py_Finalize();
+    /* printf("pyX_unload(%p) - start\n", ccctx); */
+
+    if (ctx->is_initialized) {
+        /* printf("pyX_unload(%p) - deinitialize interpreter\n", ccctx); */
+        ctx->Py_Finalize();
+    }
 
     if (ctx->handle)
         OSUnloadLibrary(ctx->handle);
 
+    if (ctx->pyhome)
+        OSFree(ctx->pyhome);
+
     OSFree(ccctx);
+
+    /* printf("pyX_unload(%p) - complete\n", ccctx); */
 }
 
 static
@@ -254,7 +268,8 @@ void pyX_release_custom_compiler(p_ccctx_t ccctx, custom_compiler_t compiler)
     PyX_XDECREF(((p_ccctx_pyX_t) ccctx), compiler);
 }
 
-p_ccctx_pyX_t pyX_load(int pymaj, const char *sobject, py_seterr_t errfcn)
+p_ccctx_pyX_t pyX_load(
+    int pymaj, const char *sobject, const wchar_t *pyhome, py_seterr_t errfcn)
 {
     p_ccctx_pyX_t ctx = NULL;
 
@@ -264,6 +279,7 @@ p_ccctx_pyX_t pyX_load(int pymaj, const char *sobject, py_seterr_t errfcn)
         return NULL;
     }
 
+    ctx->pyhome = NULL;
     ctx->handle = ccctx_load_shared_object(
         sobject, ctx, pymaj == 2? symtable_py2 : symtable_py3,
         // !! Important - both tables are equal
@@ -276,27 +292,42 @@ p_ccctx_pyX_t pyX_load(int pymaj, const char *sobject, py_seterr_t errfcn)
         return NULL;
     }
 
-    if (pymaj == 2) {
-        *ctx->Py_FileSystemDefaultEncoding = PYX_FILE_SYSTEM_ENCODING;
-    }
-
-    *ctx->Py_NoSiteFlag = 1;
-    *ctx->Py_IgnoreEnvironmentFlag = 1;
-    *ctx->Py_NoUserSiteDirectory = 1;
-    *ctx->Py_DontWriteBytecodeFlag = 1;
-
-    ctx->is_initialized = 0;
-
     if (ctx->Py_IsInitialized()) {
-        ctx->is_initialized = 1;
+        /* printf("Already initialized\n"); */
+
+        ctx->is_initialized = 0;
     } else {
+        /* printf("Initialization required\n"); */
+
+        *ctx->Py_NoSiteFlag = 1;
+        *ctx->Py_IgnoreEnvironmentFlag = 1;
+        *ctx->Py_NoUserSiteDirectory = 1;
+        *ctx->Py_DontWriteBytecodeFlag = 1;
+
+        if (pymaj == 2) {
+            *ctx->Py_FileSystemDefaultEncoding = PYX_FILE_SYSTEM_ENCODING;
+            if (pyhome) {
+                size_t size = wcstombs(NULL, pyhome, 0);
+                ctx->pyhome = OSAlloc(size);
+                wcstombs(ctx->pyhome, pyhome, size);
+                ctx->Py_SetPythonHome(ctx->pyhome);
+            }
+        } else if (pyhome) {
+            ctx->pyhome = (void *) wcsdup(pyhome);
+            ctx->Py_SetPythonHome(ctx->pyhome);
+        }
+
         ctx->Py_SetProgramName("pycc");
         ctx->Py_InitializeEx(0);
+
+        ctx->is_initialized = 1;
     }
 
     if (!ctx->Py_IsInitialized()) {
         errfcn("Failed to initialize python");
         OSUnloadLibrary(ctx->handle);
+        if (ctx->pyhome)
+            OSFree(ctx->pyhome);
         OSFree(ctx);
         return NULL;
     }

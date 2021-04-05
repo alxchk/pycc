@@ -1,0 +1,4 @@
+clang
+%c -std=c89
+-I/usr/include/python3.8
+-I.

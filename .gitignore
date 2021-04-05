@@ -1,0 +1,7 @@
+.ccls-cache
+pycc/__pycache__
+pycc/lib/*.so
+pycc/lib/*.zip
+pydists/*.tar.gz
+pydists/cpython-*
+build/

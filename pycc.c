@@ -28,6 +28,9 @@ py_ccctx_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static void
 py_ccctx_dealloc(PyObject* object) {
     py_ccctx_t *self = (py_ccctx_t *) object;
+
+    /* printf("Delloc started\n"); */
+
     if (self->custom_compiler)
         self->ctxref->ctx->vtable.release_custom_compiler(
             self->ctxref->ctx, self->custom_compiler
@@ -40,6 +43,8 @@ py_ccctx_dealloc(PyObject* object) {
     }
 
     Py_TYPE(self)->tp_free(object);
+
+    /* printf("Delloc completed\n"); */
 }
 
 static
@@ -55,20 +60,21 @@ py_ccctx_init(PyObject *object, PyObject *args, PyObject *kwds)
     int pymaj;
     int pymin;
     const char *load_from = NULL;
+    const wchar_t *pyhome = NULL;
 
     char *kwds_names[] = {
-        "", "", "load_from", NULL
+        "", "", "load_from", "python_home", NULL
     };
 
     if (! PyArg_ParseTupleAndKeywords(
-            args, kwds, "II|s", kwds_names,
-            &pymaj, &pymin, &load_from)) {
+            args, kwds, "II|su", kwds_names,
+            &pymaj, &pymin, &load_from, &pyhome)) {
 
         PyErr_SetString(ccctx_ErrorObject, "Invalid arguments");
         return -1;
     }
 
-    p_ccctx_ref_t ref = ccctx_load(pymaj, pymin, load_from, _seterr);
+    p_ccctx_ref_t ref = ccctx_load(pymaj, pymin, load_from, pyhome, _seterr);
     if (! ref)
         return -1;
 
@@ -198,7 +204,7 @@ py_ccctx_methods[] = {
 
 static PyTypeObject PyCcctxObject_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "pycc.Ctx",                          /* tp_name */
+    "_pycc.Ctx",                         /* tp_name */
     sizeof(py_ccctx_t),                  /* tp_basicsize */
     0,                                   /* tp_itemsize */
     py_ccctx_dealloc,                    /* tp_dealloc */
@@ -241,12 +247,12 @@ static PyTypeObject PyCcctxObject_Type = {
 
 static struct PyModuleDef pycc_module = {
     PyModuleDef_HEAD_INIT,
-    "pycc",
+    "_pycc",
     "Python bytecode cross-compiler",
 };
 
 PyMODINIT_FUNC
-PyInit_pycc(void)
+PyInit__pycc(void)
 {
     PyObject *m;
 
@@ -257,7 +263,7 @@ PyInit_pycc(void)
     if (m == NULL)
         return NULL;
 
-    ccctx_ErrorObject = PyErr_NewException("pycc.error", NULL, NULL);
+    ccctx_ErrorObject = PyErr_NewException("_pycc.error", NULL, NULL);
     Py_XINCREF(ccctx_ErrorObject);
     if (PyModule_AddObject(m, "error", ccctx_ErrorObject) < 0) {
         Py_CLEAR(ccctx_ErrorObject);
