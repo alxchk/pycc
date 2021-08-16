@@ -18,8 +18,12 @@ static symrecord_t symtable_py2[] = {
 
     REF(Py_InitializeEx),
     REF(Py_IsInitialized),
+    REF(PyEval_InitThreads),
+    REF(PyEval_SaveThread),
+    REF(PyEval_RestoreThread),
     REF(PyGILState_Ensure),
     REF(PyGILState_Release),
+    REF(PyGILState_GetThisThreadState),
     REF(PyEval_GetBuiltins),
     REF(Py_SetProgramName),
     REF(Py_SetPythonHome),
@@ -55,8 +59,12 @@ static symrecord_t symtable_py3[] = {
 
     REF(Py_InitializeEx),
     REF(Py_IsInitialized),
+    REF(PyEval_InitThreads),
+    REF(PyEval_SaveThread),
+    REF(PyEval_RestoreThread),
     REF(PyGILState_Ensure),
     REF(PyGILState_Release),
+    REF(PyGILState_GetThisThreadState),
     REF(PyEval_GetBuiltins),
     REF(Py_SetProgramName),
     REF(Py_SetPythonHome),
@@ -99,7 +107,13 @@ void* pyX_compile(
 
     ctx = (p_ccctx_pyX_t) ccctx;
 
-    state = ctx->PyGILState_Ensure();
+    if (ctx->is_initialized) {
+        /* printf("CTX Restore threads [compile]...\n"); */
+        ctx->PyEval_RestoreThread(ctx->tstate);
+    } else {
+        /* printf("CTX Ensure GIL [compile]...\n"); */
+        state = ctx->PyGILState_Ensure();
+    }
 
     optflag_orig = *ctx->Py_OptimizeFlag;
 
@@ -160,7 +174,13 @@ void* pyX_compile(
     PyX_XDECREF(ctx, PyX_code);
     PyX_XDECREF(ctx, PyX_marshalled_code);
 
-    ctx->PyGILState_Release(state);
+    if (ctx->is_initialized) {
+        /* printf("CTX Release threads [compile]...\n"); */
+        ctx->tstate = ctx->PyEval_SaveThread();
+    } else {
+        /* printf("CTX GIL Release [compile]...\n"); */
+        ctx->PyGILState_Release(state);
+    }
 
     return compiled_code;
 }
@@ -173,6 +193,7 @@ void pyX_unload(p_ccctx_t ccctx)
     /* printf("pyX_unload(%p) - start\n", ccctx); */
 
     if (ctx->is_initialized) {
+        ctx->PyEval_RestoreThread(ctx->tstate);
         /* printf("pyX_unload(%p) - deinitialize interpreter\n", ccctx); */
         ctx->Py_Finalize();
     }
@@ -193,9 +214,20 @@ custom_compiler_t pyX_make_custom_compiler(
     p_ccctx_t ccctx, const char *compiler_code,
     const char *function, py_seterr_t seterr)
 {
+    int state;
     custom_compiler_t result = NULL;
     p_ccctx_pyX_t ctx = (p_ccctx_pyX_t) ccctx;
-    PyXObject code_object = ctx->Py_CompileStringFlags(
+    PyXObject code_object;
+
+    if (ctx->is_initialized) {
+        /* printf("CTX Restore threads [custom compiler]...\n"); */
+        ctx->PyEval_RestoreThread(ctx->tstate);
+    } else {
+        /* printf("CTX Ensure GIL [custom compiler]...\n"); */
+        state = ctx->PyGILState_Ensure();
+    }
+
+    code_object = ctx->Py_CompileStringFlags(
         compiler_code, "<compiler>", 257, NULL
     );
 
@@ -256,7 +288,15 @@ custom_compiler_t pyX_make_custom_compiler(
         ctx->PyErr_Clear();
 
         PyX_XDECREF(ctx, result);
-        return NULL;
+        result = NULL;
+    }
+
+    if (ctx->is_initialized) {
+        /* printf("CTX Release state [custom compiler]...\n"); */
+        ctx->tstate = ctx->PyEval_SaveThread();
+    } else {
+        /* printf("CTX Ensure GIL [custom compiler]...\n"); */
+        ctx->PyGILState_Release(state);
     }
 
     return result;
@@ -337,5 +377,9 @@ p_ccctx_pyX_t pyX_load(
     ctx->vtable.release_custom_compiler = pyX_release_custom_compiler;
     ctx->vtable.free = pyX_unload;
 
+    if (ctx->is_initialized) {
+        /* printf("CTX Release threads [init]...\n"); */
+        ctx->tstate = ctx->PyEval_SaveThread();
+    }
     return ctx;
 }

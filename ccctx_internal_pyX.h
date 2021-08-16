@@ -10,8 +10,12 @@ typedef void (*pyX_PyErr_Print)(void);
 
 typedef void (*pyX_Py_InitializeEx)(int);
 typedef int (*pyX_Py_IsInitialized)(void);
+typedef void (*pyX_PyEval_InitThreads)(void);
+typedef void* (*pyX_PyEval_SaveThread)(void);
+typedef void (*pyX_PyEval_RestoreThread)(void *);
 typedef int (*pyX_PyGILState_Ensure)(void);
 typedef void (*pyX_PyGILState_Release)(int);
+typedef void* (*pyX_PyGILState_GetThisThreadState)(void);
 typedef void (*pyX_Py_SetProgramName)(const char *);
 typedef void (*pyX_Py_SetPythonHome)(const void *);
 typedef void (*pyX_Py_Finalize)(void);
@@ -57,6 +61,7 @@ typedef struct ccctx_pyX_t {
     HMODULE handle;
 
     int is_initialized;
+    void *tstate;
 
     char **Py_FileSystemDefaultEncoding;
     int *Py_IgnoreEnvironmentFlag;
@@ -67,8 +72,12 @@ typedef struct ccctx_pyX_t {
 
     pyX_Py_InitializeEx Py_InitializeEx;
     pyX_Py_IsInitialized Py_IsInitialized;
+    pyX_PyEval_InitThreads PyEval_InitThreads;
+    pyX_PyEval_SaveThread PyEval_SaveThread;
+    pyX_PyEval_RestoreThread PyEval_RestoreThread;
     pyX_PyGILState_Ensure PyGILState_Ensure;
     pyX_PyGILState_Release PyGILState_Release;
+    pyX_PyGILState_GetThisThreadState PyGILState_GetThisThreadState;
     pyX_Py_SetProgramName Py_SetProgramName;
     pyX_Py_SetPythonHome Py_SetPythonHome;
     pyX_Py_Finalize Py_Finalize;

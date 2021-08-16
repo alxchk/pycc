@@ -270,7 +270,7 @@ pycc = Extension(
 
 setup(
     name='pycc',
-    version='0.2',
+    version='0.3',
     description='Python bytecode cross-compiler (for python3)',
     packages=['pycc'],
     package_dir={

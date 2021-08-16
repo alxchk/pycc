@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import threading
 import pycc
 
 tags = (
@@ -11,7 +12,32 @@ tags = (
     (3, 9)
 )
 
-for _ in range(256):
-    for tag in tags:
+
+def test():
+    for _ in range(256):
+        for tag in tags:
+            ctx = pycc.Ctx(*tag)
+            ctx.compile('1+1')
+
+
+def test_mt(tag):
+    for _ in range(256):
         ctx = pycc.Ctx(*tag)
         ctx.compile('1+1')
+
+
+print('[+] Single thread')
+test()
+
+print('[+] Multi-thread')
+
+threads = []
+for tag in tags:
+    thread = threading.Thread(target=test_mt, args=(tag,))
+    thread.start()
+    threads.append(thread)
+
+for thread in threads:
+    thread.join()
+
+print('[+] Done')
