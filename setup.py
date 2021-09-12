@@ -6,7 +6,7 @@ from distutils.command.build_ext import build_ext
 
 libpython_tags = tuple(
     tag for tag in (
-        '2.7', '3.5.10', '3.6.13', '3.7.10', '3.8.9', '3.9.3'
+        '2.7.18', '3.5.10', '3.6.15', '3.7.12', '3.8.12', '3.9.7'
     ) if tag[:3] != '{}.{}'.format(
         version_info.major, version_info.minor
     )
