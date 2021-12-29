@@ -87,7 +87,7 @@ static symrecord_t symtable_py3[] = {
     REF(Py_DecRef),
     REF(Py_IncRef),
     REFN("PyBytes_AsStringAndSize", PyString_AsStringAndSize),
-    REFN("PyBytes_AsString", PyString_AsString),
+    REFN("PyUnicode_AsUTF8", PyString_AsString),
 };
 
 static
@@ -160,8 +160,10 @@ void* pyX_compile(
         if (pvalue)
             PyX_err = ctx->PyObject_Str(pvalue);
 
-        if (PyX_err)
-            seterr(ctx->PyString_AsString(PyX_err));
+        if (PyX_err) {
+            const char *err = ctx->PyString_AsString(PyX_err);
+            seterr(err? err : "Unknown error");
+        }
 
         PyX_XDECREF(ctx, PyX_err);
         PyX_XDECREF(ctx, ptype);
@@ -277,8 +279,10 @@ custom_compiler_t pyX_make_custom_compiler(
         if (pvalue)
             PyX_err = ctx->PyObject_Str(pvalue);
 
-        if (PyX_err)
-            seterr(ctx->PyString_AsString(PyX_err));
+        if (PyX_err) {
+            const char *err = ctx->PyString_AsString(PyX_err);
+            seterr(err? err : "Unknown error");
+        }
 
         PyX_XDECREF(ctx, PyX_err);
         PyX_XDECREF(ctx, ptype);
