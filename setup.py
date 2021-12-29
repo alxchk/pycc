@@ -6,7 +6,8 @@ from distutils.command.build_ext import build_ext
 
 libpython_tags = tuple(
     tag for tag in (
-        '2.7.18', '3.5.10', '3.6.15', '3.7.12', '3.8.12', '3.9.7'
+        '2.7.18', '3.5.10', '3.6.15',
+        '3.7.12', '3.8.12', '3.9.9', '3.10.1'
     ) if tag[:3] != '{}.{}'.format(
         version_info.major, version_info.minor
     )
@@ -270,7 +271,7 @@ pycc = Extension(
 
 setup(
     name='pycc',
-    version='0.3',
+    version='0.3.1',
     description='Python bytecode cross-compiler (for python3)',
     packages=['pycc'],
     package_dir={
