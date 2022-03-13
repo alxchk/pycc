@@ -2,6 +2,7 @@ from os import path
 from sys import platform
 
 from pycc._pycc import Ctx as _Ctx
+from pycc._pycc import error
 
 
 def Ctx(pymaj, pymin, load_from=None):
