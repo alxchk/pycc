@@ -22,6 +22,12 @@ typedef void* HMODULE;
 #define Py2SOBJ "libpython2.7.so"
 #define Py3SOBJ "libpython3.8.so"
 
+
+// Likely unsupported
+#ifndef RTLD_DEEPBIND
+#define RTLD_DEEPBIND 0
+#endif
+
 #define OSLoadLibrary(name) dlopen(name, RTLD_NOW | RTLD_DEEPBIND | RTLD_LOCAL)
 #define OSGetSym(lib, name) dlsym(lib, name)
 #define OSUnloadLibrary(lib) dlclose(lib)
